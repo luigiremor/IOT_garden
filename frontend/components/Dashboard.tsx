@@ -1,30 +1,64 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import AlertsConfigForm from './AlertsConfigForm'
+import { fetchSensorData, socket } from '@/services/apiService'
+import SensorCard from '@/components/SensorCard'
 
-// Dados simulados para o gráfico
-const chartData = [
-  { time: '00:00', trees: 22, vegetables: 24, ornamentals: 23 },
-  { time: '04:00', trees: 20, vegetables: 22, ornamentals: 21 },
-  { time: '08:00', trees: 24, vegetables: 26, ornamentals: 25 },
-  { time: '12:00', trees: 28, vegetables: 30, ornamentals: 29 },
-  { time: '16:00', trees: 26, vegetables: 28, ornamentals: 27 },
-  { time: '20:00', trees: 24, vegetables: 26, ornamentals: 25 },
-]
-
-// Dados simulados para os sensores
-const sensorData = {
-  trees: { temperature: 24, humidity: 65, soilMoisture: 40, lightIntensity: 5000 },
-  vegetables: { temperature: 26, humidity: 70, soilMoisture: 60, lightIntensity: 6000 },
-  ornamentals: { temperature: 25, humidity: 68, soilMoisture: 50, lightIntensity: 5500 },
+interface SensorData {
+  id: number
+  timestamp: string
+  temperature: number
+  humidity: number
+  lightIntensity: number
+  soilMoisture: number
 }
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('overview')
+  const [sensorData, setSensorData] = useState<SensorData[]>([])
+  const [latestData, setLatestData] = useState<SensorData | null>(null)
+
+  useEffect(() => {
+    // Fetch initial sensor data
+    const getData = async () => {
+      try {
+        const data = await fetchSensorData()
+        setSensorData(data)
+        if (data.length > 0) {
+          setLatestData(data[0])
+        }
+      } catch (error) {
+        console.error('Error fetching sensor data:', error)
+      }
+    }
+    getData()
+
+    // Handle real-time updates via WebSocket
+    socket.on('newSensorData', (data: SensorData) => {
+      setLatestData(data)
+      setSensorData((prevData) => [data, ...prevData])
+    })
+
+    // Clean up the socket connection when component unmounts
+    return () => {
+      socket.off('newSensorData')
+    }
+  }, [])
+
+  // Prepare data for the chart
+  const chartData = sensorData
+    .slice(0, 20) // Use the latest 20 data points
+    .reverse() // Reverse to show from oldest to newest
+    .map((data) => ({
+      timestamp: new Date(data.timestamp).toLocaleTimeString(),
+      temperature: data.temperature,
+      humidity: data.humidity,
+      lightIntensity: data.lightIntensity,
+      soilMoisture: data.soilMoisture,
+    }))
 
   return (
     <div className="container mx-auto p-4">
@@ -38,27 +72,51 @@ export default function Dashboard() {
 
         <TabsContent value="overview" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <SensorCard title="Árvores" data={sensorData.trees} />
-            <SensorCard title="Leguminosas" data={sensorData.vegetables} />
-            <SensorCard title="Ornamentais" data={sensorData.ornamentals} />
+            <SensorCard title="Sensores Ambientais" data={latestData} />
           </div>
           <Card>
             <CardHeader>
-              <CardTitle>Temperatura ao Longo do Dia</CardTitle>
-              <CardDescription>Comparação entre árvores, leguminosas e ornamentais</CardDescription>
+              <CardTitle>Dados dos Sensores ao Longo do Tempo</CardTitle>
+              <CardDescription>Visualização dos dados coletados pelos sensores</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="time" />
-                    <YAxis />
+                    <XAxis dataKey="timestamp" />
+                    <YAxis yAxisId="left" />
+                    <YAxis yAxisId="right" orientation="right" />
                     <Tooltip />
                     <Legend />
-                    <Line type="monotone" dataKey="trees" stroke="#8884d8" name="Árvores" />
-                    <Line type="monotone" dataKey="vegetables" stroke="#82ca9d" name="Leguminosas" />
-                    <Line type="monotone" dataKey="ornamentals" stroke="#ffc658" name="Ornamentais" />
+                    <Line
+                      yAxisId="left"
+                      type="monotone"
+                      dataKey="temperature"
+                      stroke="#8884d8"
+                      name="Temperatura (°C)"
+                    />
+                    <Line
+                      yAxisId="left"
+                      type="monotone"
+                      dataKey="humidity"
+                      stroke="#82ca9d"
+                      name="Umidade (%)"
+                    />
+                    <Line
+                      yAxisId="right"
+                      type="monotone"
+                      dataKey="lightIntensity"
+                      stroke="#ffc658"
+                      name="Intensidade de Luz"
+                    />
+                    <Line
+                      yAxisId="left"
+                      type="monotone"
+                      dataKey="soilMoisture"
+                      stroke="#ff7300"
+                      name="Umidade do Solo (%)"
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -70,83 +128,17 @@ export default function Dashboard() {
           <Card>
             <CardHeader>
               <CardTitle>Detalhes dos Sensores</CardTitle>
-              <CardDescription>Informações detalhadas para cada área do jardim</CardDescription>
+              <CardDescription>Informações detalhadas dos dados coletados</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <SensorDetailCard title="Árvores" data={sensorData.trees} />
-                <SensorDetailCard title="Leguminosas" data={sensorData.vegetables} />
-                <SensorDetailCard title="Ornamentais" data={sensorData.ornamentals} />
+                <SensorCard title="Sensores Ambientais" data={latestData} />
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="alerts">
-          <Card>
-            <CardHeader>
-              <CardTitle>Configuração de Alertas</CardTitle>
-              <CardDescription>Defina os limites para receber notificações</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AlertsConfigForm />
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
     </div>
-  )
-}
-
-function SensorCard({ title, data }: { title: string, data: any }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="text-sm">Temperatura:</div>
-          <div className="text-sm font-medium">{data.temperature}°C</div>
-          <div className="text-sm">Umidade:</div>
-          <div className="text-sm font-medium">{data.humidity}%</div>
-          <div className="text-sm">Umidade do Solo:</div>
-          <div className="text-sm font-medium">{data.soilMoisture}%</div>
-          <div className="text-sm">Intensidade de Luz:</div>
-          <div className="text-sm font-medium">{data.lightIntensity} lux</div>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-function SensorDetailCard({ title, data }: { title: string, data: any }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-2">
-          <div>
-            <div className="text-sm font-medium">Temperatura</div>
-            <div className="text-2xl">{data.temperature}°C</div>
-          </div>
-          <div>
-            <div className="text-sm font-medium">Umidade</div>
-            <div className="text-2xl">{data.humidity}%</div>
-          </div>
-          <div>
-            <div className="text-sm font-medium">Umidade do Solo</div>
-            <div className="text-2xl">{data.soilMoisture}%</div>
-          </div>
-          <div>
-            <div className="text-sm font-medium">Intensidade de Luz</div>
-            <div className="text-2xl">{data.lightIntensity} lux</div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
   )
 }
 
