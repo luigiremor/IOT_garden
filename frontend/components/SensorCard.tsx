@@ -1,11 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
-interface SensorData {
-  temperature: number;
-  humidity: number;
-  lightIntensity: number;
-  soilMoisture: number;
-}
+import { SensorData } from '@/services/apiService';
 
 interface SensorCardProps {
   title: string;
@@ -40,9 +34,7 @@ export default function SensorCard({ title, data }: SensorCardProps) {
           <div className="text-sm">Umidade do Solo:</div>
           <div className="text-sm font-medium">{data.soilMoisture}%</div>
           <div className="text-sm">Intensidade de Luz:</div>
-          <div className="text-sm font-medium">
-            {data.lightIntensity} lux
-          </div>
+          <div className="text-sm font-medium">{data.lightIntensity} lux</div>
         </div>
       </CardContent>
     </Card>

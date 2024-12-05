@@ -3,4 +3,5 @@ export class CreateSensorDto {
   humidity: number;
   lightIntensity: number;
   soilMoisture: number;
+  category: 'trees' | 'vegetables' | 'ornamentals';
 }

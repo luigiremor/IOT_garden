@@ -24,12 +24,16 @@ export class SensorService {
 
     try {
       const parsed = JSON.parse(message);
+
+      // Assume the 'category' is included in the message
       const sensorData: CreateSensorDto = {
         temperature: parsed.temperature,
         humidity: parsed.humidity,
         lightIntensity: parsed.light,
         soilMoisture: parsed.soilMoisture,
+        category: parsed.category as 'trees' | 'vegetables' | 'ornamentals',
       };
+
       await this.handleSensorData(sensorData);
     } catch (error) {
       this.logger.error('Error parsing sensor data:', error);

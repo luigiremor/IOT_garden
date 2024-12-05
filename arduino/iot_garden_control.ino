@@ -112,10 +112,15 @@ void loop() {
   if (isnan(temperature) || isnan(humidity)) {
     Serial.println("DHT sensor read error");
   } else {
+    // Determine the category
+    String category = "trees"; // Or "vegetables" or "ornamentals"
+
     // Publish data to MQTT
     char payload[200];
-    snprintf(payload, sizeof(payload), "{\"temperature\":%.2f,\"humidity\":%.2f,\"light\":%d,\"soilMoisture\":%d}",
-             temperature, humidity, lightIntensity, soilMoistureLevel);
+    snprintf(payload, sizeof(payload),
+             "{\"temperature\":%.2f,\"humidity\":%.2f,\"light\":%d,\"soilMoisture\":%d,\"category\":\"%s\"}",
+             temperature, humidity, lightIntensity, soilMoistureLevel, category.c_str());
+
     client.publish("horta/sensors", payload);
     Serial.println(payload);
   }

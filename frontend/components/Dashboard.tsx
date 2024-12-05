@@ -1,70 +1,102 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import { fetchSensorData, socket } from '@/services/apiService'
-import SensorCard from '@/components/SensorCard'
+import { useEffect, useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+import { fetchSensorData, socket, SensorData } from "@/services/apiService";
+import SensorCard from "@/components/SensorCard";
+import SensorDetailCard from "@/components/SensorDetailCard";
 
-interface SensorData {
-  id: number
-  timestamp: string
-  temperature: number
-  humidity: number
-  lightIntensity: number
-  soilMoisture: number
-}
+const categoryLabels = {
+  trees: "Árvores",
+  vegetables: "Vegetais",
+  ornamentals: "Ornamentais",
+};
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState('overview')
-  const [sensorData, setSensorData] = useState<SensorData[]>([])
-  const [latestData, setLatestData] = useState<SensorData | null>(null)
+  const [activeTab, setActiveTab] = useState("overview");
+  const [sensorData, setSensorData] = useState<SensorData[]>([]);
+  const [latestDataByCategory, setLatestDataByCategory] = useState<{
+    [key in SensorData["category"]]?: SensorData;
+  }>({});
 
   useEffect(() => {
-    // Fetch initial sensor data
     const getData = async () => {
       try {
-        const data = await fetchSensorData()
-        setSensorData(data)
-        if (data.length > 0) {
-          setLatestData(data[0])
+        const data = await fetchSensorData();
+        setSensorData(data);
+
+        // Get the latest data per category
+        const latestData: { [key in SensorData["category"]]?: SensorData } = {};
+        for (const category of [
+          "trees",
+          "vegetables",
+          "ornamentals",
+        ] as const) {
+          latestData[category] = data.find((d) => d.category === category);
         }
+        setLatestDataByCategory(latestData);
       } catch (error) {
-        console.error('Error fetching sensor data:', error)
+        console.error("Error fetching sensor data:", error);
       }
-    }
-    getData()
+    };
+    getData();
 
     // Handle real-time updates via WebSocket
-    socket.on('newSensorData', (data: SensorData) => {
-      setLatestData(data)
-      setSensorData((prevData) => [data, ...prevData])
-    })
+    socket.on("newSensorData", (data: SensorData) => {
+      setSensorData((prevData) => [data, ...prevData]);
 
-    // Clean up the socket connection when component unmounts
+      setLatestDataByCategory((prevLatest) => ({
+        ...prevLatest,
+        [data.category]: data,
+      }));
+    });
+
     return () => {
-      socket.off('newSensorData')
-    }
-  }, [])
+      socket.off("newSensorData");
+    };
+  }, []);
 
-  // Prepare data for the chart
+  // Prepare data for the chart, optionally filter by category
   const chartData = sensorData
-    .slice(0, 20) // Use the latest 20 data points
-    .reverse() // Reverse to show from oldest to newest
+    .filter((data) => data.category === "trees") // Change 'trees' to the desired category
+    .slice(0, 20)
+    .reverse()
     .map((data) => ({
       timestamp: new Date(data.timestamp).toLocaleTimeString(),
       temperature: data.temperature,
       humidity: data.humidity,
       lightIntensity: data.lightIntensity,
       soilMoisture: data.soilMoisture,
-    }))
+    }));
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">Painel de Controle do Jardim Urbano</h1>
-      
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+      <h1 className="text-3xl font-bold mb-6">
+        Painel de Controle do Jardim Urbano
+      </h1>
+
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="space-y-4"
+      >
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="overview">Visão Geral</TabsTrigger>
           <TabsTrigger value="details">Detalhes</TabsTrigger>
@@ -72,12 +104,22 @@ export default function Dashboard() {
 
         <TabsContent value="overview" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <SensorCard title="Sensores Ambientais" data={latestData} />
+            {(["trees", "vegetables", "ornamentals"] as const).map(
+              (category) => (
+                <SensorCard
+                  key={category}
+                  title={`${categoryLabels[category]}`}
+                  data={latestDataByCategory[category] || null}
+                />
+              )
+            )}
           </div>
           <Card>
             <CardHeader>
               <CardTitle>Dados dos Sensores ao Longo do Tempo</CardTitle>
-              <CardDescription>Visualização dos dados coletados pelos sensores</CardDescription>
+              <CardDescription>
+                Visualização dos dados coletados pelos sensores
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
@@ -128,17 +170,26 @@ export default function Dashboard() {
           <Card>
             <CardHeader>
               <CardTitle>Detalhes dos Sensores</CardTitle>
-              <CardDescription>Informações detalhadas dos dados coletados</CardDescription>
+              <CardDescription>
+                Informações detalhadas dos dados coletados
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <SensorCard title="Sensores Ambientais" data={latestData} />
+                {(["trees", "vegetables", "ornamentals"] as const).map(
+                  (category) => (
+                    <SensorDetailCard
+                      key={category}
+                      title={`${categoryLabels[category]}`}
+                      data={latestDataByCategory[category] || null}
+                    />
+                  )
+                )}
               </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }
-

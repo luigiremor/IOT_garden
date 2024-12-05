@@ -19,4 +19,7 @@ export class Sensor {
 
   @Column('int')
   soilMoisture: number;
+
+  @Column({ type: 'enum', enum: ['trees', 'vegetables', 'ornamentals'] })
+  category: 'trees' | 'vegetables' | 'ornamentals';
 }
