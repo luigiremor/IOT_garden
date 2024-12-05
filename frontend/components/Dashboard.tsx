@@ -13,8 +13,9 @@ import { fetchSensorData, socket, SensorData } from "@/services/apiService";
 import SensorCard from "@/components/SensorCard";
 import SensorDetailCard from "@/components/SensorDetailCard";
 import SensorChart from "@/components/SensorChart";
+import { SensorTable } from "@/components/SensorTable";
 
-const categoryLabels = {
+export const categoryLabels: Record<SensorData["category"], string> = {
   trees: "Árvores",
   vegetables: "Vegetais",
   ornamentals: "Ornamentais",
@@ -137,6 +138,18 @@ export default function Dashboard() {
                   )
                 )}
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Dados dos Sensores</CardTitle>
+              <CardDescription>
+                Tabela com os dados obtidos em tempo real
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SensorTable data={sensorData} />
             </CardContent>
           </Card>
         </TabsContent>

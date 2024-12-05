@@ -1,6 +1,6 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -8,36 +8,41 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { Input } from '@/components/ui/input'
+} from "@/components/ui/table";
+import { categoryLabels } from "@/components/Dashboard";
+import { Button } from "@/components/ui/button";
 
-const data = [
-  { id: 1, timestamp: '2024-03-01 10:00:00', temperature: 22, humidity: 60, light: 3000, soil: 28 },
-  { id: 2, timestamp: '2024-03-01 11:00:00', temperature: 23, humidity: 58, light: 3500, soil: 27 },
-  { id: 3, timestamp: '2024-03-01 12:00:00', temperature: 25, humidity: 55, light: 4000, soil: 26 },
-  { id: 4, timestamp: '2024-03-01 13:00:00', temperature: 26, humidity: 54, light: 4200, soil: 25 },
-  { id: 5, timestamp: '2024-03-01 14:00:00', temperature: 26, humidity: 53, light: 4100, soil: 24 },
-]
+interface SensorTableProps {
+  data: {
+    id: number;
+    timestamp: string;
+    temperature: number;
+    humidity: number;
+    lightIntensity: number;
+    soilMoisture: number;
+    category: "trees" | "vegetables" | "ornamentals";
+  }[];
+}
 
-export function SensorTable() {
-  const [filter, setFilter] = useState('')
+export function SensorTable({ data }: SensorTableProps) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
-  const filteredData = data.filter(
-    (item) =>
-      item.timestamp.includes(filter) ||
-      item.temperature.toString().includes(filter) ||
-      item.humidity.toString().includes(filter) ||
-      item.light.toString().includes(filter) ||
-      item.soil.toString().includes(filter)
-  )
+  const totalPages = Math.ceil(data.length / itemsPerPage);
+
+  const handlePrevious = () => {
+    setCurrentPage((prev) => Math.max(prev - 1, 1));
+  };
+
+  const handleNext = () => {
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  };
+
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const currentData = data.slice(startIndex, startIndex + itemsPerPage);
 
   return (
     <div className="space-y-4">
-      <Input
-        placeholder="Filter data..."
-        value={filter}
-        onChange={(e) => setFilter(e.target.value)}
-      />
       <Table>
         <TableHeader>
           <TableRow>
@@ -46,21 +51,42 @@ export function SensorTable() {
             <TableHead>Humidity (%)</TableHead>
             <TableHead>Light (lux)</TableHead>
             <TableHead>Soil Moisture (%)</TableHead>
+            <TableHead>Category</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredData.map((row) => (
+          {currentData.map((row) => (
             <TableRow key={row.id}>
-              <TableCell>{row.timestamp}</TableCell>
+              <TableCell>{new Date(row.timestamp).toLocaleString()}</TableCell>
               <TableCell>{row.temperature}</TableCell>
               <TableCell>{row.humidity}</TableCell>
-              <TableCell>{row.light}</TableCell>
-              <TableCell>{row.soil}</TableCell>
+              <TableCell>{row.lightIntensity}</TableCell>
+              <TableCell>{row.soilMoisture}</TableCell>
+              <TableCell>{categoryLabels[row.category]}</TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
+      {/* Pagination Controls */}
+      <div className="flex justify-between items-center mt-4">
+        <Button
+          onClick={handlePrevious}
+          disabled={currentPage === 1}
+          variant={currentPage === 1 ? "outline" : "default"}
+        >
+          Previous
+        </Button>
+        <span>
+          Page {currentPage} of {totalPages}
+        </span>
+        <Button
+          onClick={handleNext}
+          disabled={currentPage === totalPages}
+          variant={currentPage === totalPages ? "outline" : "default"}
+        >
+          Next
+        </Button>
+      </div>
     </div>
-  )
+  );
 }
-
