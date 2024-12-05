@@ -8,37 +8,36 @@ import { UpdateRelayDto } from './dto/update-relay.dto';
 export class RelayService {
   private readonly logger = new Logger(RelayService.name);
 
-  // Estado atual dos relés
+  // Current state of the relays
   private relayStatus: UpdateRelayDto = {
-    relay1: false,
-    relay2: false,
-    relay3: false,
-    relay4: false,
+    treeZone: false,
+    vegetableZone: false,
+    potZone: false,
   };
 
   constructor(private readonly mqttService: MqttService) {}
 
   /**
-   * Atualiza os estados dos relés e publica a mensagem MQTT correspondente.
-   * @param updateRelayDto - Objeto contendo os estados desejados para cada relé.
+   * Updates the states of the relays and publishes the corresponding MQTT message.
+   * @param updateRelayDto - Object containing the desired states for each relay.
    */
   async updateRelays(updateRelayDto: UpdateRelayDto): Promise<void> {
-    // Atualiza o estado interno
+    // Update internal state
     this.relayStatus = updateRelayDto;
 
-    // Cria a string de payload, por exemplo, '1010' para ligar relay1 e relay3
-    const payload = `${updateRelayDto.relay1 ? '1' : '0'}${updateRelayDto.relay2 ? '1' : '0'}${updateRelayDto.relay3 ? '1' : '0'}${updateRelayDto.relay4 ? '1' : '0'}`;
+    // Create the payload string, e.g., '101' to turn on treeZone and potZone
+    const payload = `${updateRelayDto.treeZone ? '1' : '0'}${updateRelayDto.vegetableZone ? '1' : '0'}${updateRelayDto.potZone ? '1' : '0'}`;
 
     this.logger.log(
-      `Publicando payload '${payload}' no tópico 'acionar/reles'`,
+      `Publishing payload '${payload}' to topic 'irrigation/control'`,
     );
 
-    // Publica a mensagem no tópico MQTT
-    await this.mqttService.publish('acionar/reles', payload);
+    // Publish the message to the MQTT topic
+    await this.mqttService.publish('irrigation/control', payload);
   }
 
   /**
-   * Retorna o estado atual dos relés.
+   * Returns the current state of the relays.
    */
   getRelayStatus(): UpdateRelayDto {
     return this.relayStatus;

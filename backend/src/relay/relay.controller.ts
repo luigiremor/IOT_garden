@@ -9,25 +9,24 @@ export class RelayController {
   constructor(private readonly relayService: RelayService) {}
 
   /**
-   * Endpoint para atualizar os estados dos relés.
-   * Exemplo de requisição:
+   * Endpoint to update the states of the relays.
+   * Example request:
    * POST /relay/update
    * {
-   *   "relay1": true,
-   *   "relay2": false,
-   *   "relay3": true,
-   *   "relay4": false
+   *   "treeZone": true,
+   *   "vegetableZone": false,
+   *   "potZone": true
    * }
    */
   @Post('update')
   async updateRelays(@Body() updateRelayDto: UpdateRelayDto): Promise<string> {
     await this.relayService.updateRelays(updateRelayDto);
-    return 'Estados dos relés atualizados com sucesso!';
+    return 'Relay states updated successfully!';
   }
 
   /**
-   * Endpoint para obter o estado atual dos relés.
-   * Exemplo de requisição:
+   * Endpoint to get the current state of the relays.
+   * Example request:
    * GET /relay/status
    */
   @Get('status')

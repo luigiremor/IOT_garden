@@ -17,13 +17,13 @@ export class AppController {
   subscribeTopic(): string {
     const topic = 'test/topic';
     this.mqttService.subscribe(topic);
-    return 'Subscreveu no tópico!';
+    return 'Subscribed to the topic!';
   }
 
   @Get('unsubscribe')
   unsubscribeTopic(): string {
     const topic = 'test/topic';
     this.mqttService.unsubscribe(topic);
-    return 'Cancelou a subscrição no tópico!';
+    return 'Unsubscribed from the topic!';
   }
 }

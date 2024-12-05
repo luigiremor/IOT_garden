@@ -1,102 +1,81 @@
-// src/mqtt/mqtt.service.ts
-
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import * as mqtt from 'mqtt';
-import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class MqttService implements OnModuleInit {
-  private client: mqtt.MqttClient;
   private readonly logger = new Logger(MqttService.name);
+  private client: mqtt.MqttClient;
 
   constructor(
-    private eventEmitter: EventEmitter2,
-    private configService: ConfigService,
+    private readonly configService: ConfigService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   onModuleInit() {
-    this.connect();
-  }
+    const mqttUrl = this.configService.get<string>(
+      'MQTT_BROKER_URL',
+      'mqtt://localhost:1883',
+    );
 
-  /**
-   * Conecta ao broker MQTT e define os callbacks.
-   */
-  connect() {
-    const brokerUrl =
-      this.configService.get<string>('MQTT_BROKER_URL') ||
-      'mqtt://localhost:1883';
-    this.client = mqtt.connect(brokerUrl);
+    this.client = mqtt.connect(mqttUrl);
 
     this.client.on('connect', () => {
-      this.logger.log(`Conectado ao broker MQTT em ${brokerUrl}`);
-      this.subscribe('trabalho_trans');
-    });
+      this.logger.log('Connected to MQTT broker');
 
-    this.client.on('error', (error) => {
-      this.logger.error(`Erro na conexão MQTT: ${error.message}`);
-    });
-
-    this.client.on('message', (topic, message) => {
-      this.logger.log(
-        `Mensagem recebida - Tópico: ${topic}, Mensagem: ${message.toString()}`,
-      );
-      this.eventEmitter.emit('sensor.data', {
-        topic,
-        message: message.toString(),
-      });
-    });
-  }
-
-  /**
-   * Publica uma mensagem no tópico MQTT especificado.
-   * @param topic - Tópico MQTT.
-   * @param message - Mensagem a ser publicada.
-   */
-  publish(topic: string, message: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      this.client.publish(topic, message, {}, (error) => {
+      // Subscribe to the 'horta/sensors' topic
+      this.client.subscribe('horta/sensors', (error) => {
         if (error) {
-          this.logger.error(
-            `Erro ao publicar no tópico ${topic}: ${error.message}`,
-          );
-          reject(error);
+          this.logger.error('Failed to subscribe to horta/sensors:', error);
         } else {
-          this.logger.log(`Mensagem publicada no tópico ${topic}: ${message}`);
-          resolve();
+          this.logger.log('Subscribed to horta/sensors');
         }
       });
     });
+
+    this.client.on('error', (error) => {
+      this.logger.error('MQTT connection error:', error);
+    });
+
+    // Handle incoming messages
+    this.client.on('message', (topic: string, payload: Buffer) => {
+      const message = payload.toString();
+      this.logger.log(`Received message from ${topic}: ${message}`);
+
+      // Emit an event with the topic and message
+      this.eventEmitter.emit('sensor.data', { topic, message });
+    });
   }
 
-  /**
-   * Subscreve no tópico MQTT especificado.
-   * @param topic - Tópico MQTT.
-   */
-  subscribe(topic: string) {
-    this.client.subscribe(topic, (error) => {
+  async publish(topic: string, message: string): Promise<void> {
+    this.client.publish(topic, message, (error) => {
       if (error) {
-        this.logger.error(
-          `Erro ao subscrever no tópico ${topic}: ${error.message}`,
-        );
+        this.logger.error(`Failed to publish message to ${topic}:`, error);
       } else {
-        this.logger.log(`Subscreveu no tópico ${topic}`);
+        this.logger.log(`Message published to ${topic}: ${message}`);
       }
     });
   }
 
-  /**
-   * Cancela a subscrição no tópico MQTT especificado.
-   * @param topic - Tópico MQTT.
-   */
-  unsubscribe(topic: string) {
+  // Add subscribe method if you need to subscribe to additional topics
+  async subscribe(topic: string): Promise<void> {
+    this.client.subscribe(topic, (error) => {
+      if (error) {
+        this.logger.error(`Failed to subscribe to ${topic}:`, error);
+      } else {
+        this.logger.log(`Subscribed to ${topic}`);
+      }
+    });
+  }
+
+  // Similarly, you can add an unsubscribe method
+  async unsubscribe(topic: string): Promise<void> {
     this.client.unsubscribe(topic, (error) => {
       if (error) {
-        this.logger.error(
-          `Erro ao cancelar a subscrição no tópico ${topic}: ${error.message}`,
-        );
+        this.logger.error(`Failed to unsubscribe from ${topic}:`, error);
       } else {
-        this.logger.log(`Cancelou a subscrição no tópico ${topic}`);
+        this.logger.log(`Unsubscribed from ${topic}`);
       }
     });
   }

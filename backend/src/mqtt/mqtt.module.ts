@@ -1,9 +1,9 @@
-import { MqttService } from '@/mqtt/mqtt.service';
 import { Module } from '@nestjs/common';
-import { EventEmitterModule } from '@nestjs/event-emitter';
+import { MqttService } from './mqtt.service';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [EventEmitterModule.forRoot()],
+  imports: [ConfigModule],
   providers: [MqttService],
   exports: [MqttService],
 })
