@@ -85,7 +85,8 @@ Este repositório contém o código-fonte para o sistema IoT de monitoramento e 
   - Next.js
   - React.js
   - Recharts
-  - React Query
+  - WebSocket
+  - Shadcn/ui
 
 - **Arduino**:
   - Sensores: DHT22, LDR, Sensor de Umidade do Solo.
