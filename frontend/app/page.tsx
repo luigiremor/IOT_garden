@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function DashboardPage() {
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen mx-auto">
       <header className="px-4 lg:px-6 h-14 flex items-center border-b">
         <h1 className="text-lg font-semibold">Urban Garden IoT Dashboard</h1>
       </header>

@@ -31,10 +31,9 @@ export default function Dashboard() {
       <h1 className="text-3xl font-bold mb-6">Painel de Controle do Jardim Urbano</h1>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="overview">Visão Geral</TabsTrigger>
           <TabsTrigger value="details">Detalhes</TabsTrigger>
-          <TabsTrigger value="alerts">Configuração de Alertas</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
