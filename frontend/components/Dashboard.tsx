@@ -9,19 +9,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
 import { fetchSensorData, socket, SensorData } from "@/services/apiService";
 import SensorCard from "@/components/SensorCard";
 import SensorDetailCard from "@/components/SensorDetailCard";
+import SensorChart from "@/components/SensorChart";
 
 const categoryLabels = {
   trees: "Árvores",
@@ -73,19 +64,6 @@ export default function Dashboard() {
     };
   }, []);
 
-  // Prepare data for the chart, optionally filter by category
-  const chartData = sensorData
-    .filter((data) => data.category === "trees") // Change 'trees' to the desired category
-    .slice(0, 20)
-    .reverse()
-    .map((data) => ({
-      timestamp: new Date(data.timestamp).toLocaleTimeString(),
-      temperature: data.temperature,
-      humidity: data.humidity,
-      lightIntensity: data.lightIntensity,
-      soilMoisture: data.soilMoisture,
-    }));
-
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-6">
@@ -109,59 +87,32 @@ export default function Dashboard() {
                 <SensorCard
                   key={category}
                   title={`${categoryLabels[category]}`}
-                  data={latestDataByCategory[category] || null}
+                  data={latestDataByCategory[category] || undefined}
                 />
               )
             )}
           </div>
           <Card>
             <CardHeader>
-              <CardTitle>Dados dos Sensores ao Longo do Tempo</CardTitle>
+              <CardTitle>Comparações dos Dados dos Sensores</CardTitle>
               <CardDescription>
-                Visualização dos dados coletados pelos sensores
+                Compare os dados dos sensores entre as categorias ao longo do
+                tempo
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="timestamp" />
-                    <YAxis yAxisId="left" />
-                    <YAxis yAxisId="right" orientation="right" />
-                    <Tooltip />
-                    <Legend />
-                    <Line
-                      yAxisId="left"
-                      type="monotone"
-                      dataKey="temperature"
-                      stroke="#8884d8"
-                      name="Temperatura (°C)"
-                    />
-                    <Line
-                      yAxisId="left"
-                      type="monotone"
-                      dataKey="humidity"
-                      stroke="#82ca9d"
-                      name="Umidade (%)"
-                    />
-                    <Line
-                      yAxisId="right"
-                      type="monotone"
-                      dataKey="lightIntensity"
-                      stroke="#ffc658"
-                      name="Intensidade de Luz"
-                    />
-                    <Line
-                      yAxisId="left"
-                      type="monotone"
-                      dataKey="soilMoisture"
-                      stroke="#ff7300"
-                      name="Umidade do Solo (%)"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-10">
+              <Card>
+                <SensorChart data={sensorData} metric="temperature" />
+              </Card>
+              <Card>
+                <SensorChart data={sensorData} metric="humidity" />
+              </Card>
+              <Card>
+                <SensorChart data={sensorData} metric="lightIntensity" />
+              </Card>
+              <Card>
+                <SensorChart data={sensorData} metric="soilMoisture" />
+              </Card>
             </CardContent>
           </Card>
         </TabsContent>
@@ -181,7 +132,7 @@ export default function Dashboard() {
                     <SensorDetailCard
                       key={category}
                       title={`${categoryLabels[category]}`}
-                      data={latestDataByCategory[category] || null}
+                      data={latestDataByCategory[category] || undefined}
                     />
                   )
                 )}

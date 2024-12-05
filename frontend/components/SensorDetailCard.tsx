@@ -1,55 +1,42 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+"use client";
 
-interface SensorData {
-  temperature: number;
-  humidity: number;
-  lightIntensity: number;
-  soilMoisture: number;
-}
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SensorData } from "@/services/apiService";
 
 interface SensorDetailCardProps {
   title: string;
-  data: SensorData | null;
+  data: SensorData | undefined;
 }
 
 export default function SensorDetailCard({ title, data }: SensorDetailCardProps) {
-  if (!data) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div>Carregando dados...</div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <Card>
+    <Card className="bg-white shadow-md">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-2">
-          <div>
-            <div className="text-sm font-medium">Temperatura</div>
-            <div className="text-2xl">{data.temperature}°C</div>
+        {data ? (
+          <div className="space-y-2">
+            <div>
+              <span className="font-medium">Timestamp:</span>{" "}
+              {new Date(data.timestamp).toLocaleString()}
+            </div>
+            <div>
+              <span className="font-medium">Temperature:</span> {data.temperature}°C
+            </div>
+            <div>
+              <span className="font-medium">Humidity:</span> {data.humidity}%
+            </div>
+            <div>
+              <span className="font-medium">Light Intensity:</span> {data.lightIntensity} lux
+            </div>
+            <div>
+              <span className="font-medium">Soil Moisture:</span> {data.soilMoisture}%
+            </div>
           </div>
-          <div>
-            <div className="text-sm font-medium">Umidade</div>
-            <div className="text-2xl">{data.humidity}%</div>
-          </div>
-          <div>
-            <div className="text-sm font-medium">Umidade do Solo</div>
-            <div className="text-2xl">{data.soilMoisture}%</div>
-          </div>
-          <div>
-            <div className="text-sm font-medium">Intensidade de Luz</div>
-            <div className="text-2xl">{data.lightIntensity} lux</div>
-          </div>
-        </div>
+        ) : (
+          <div>No data available.</div>
+        )}
       </CardContent>
     </Card>
   );

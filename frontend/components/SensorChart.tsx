@@ -1,32 +1,118 @@
-'use client'
+"use client";
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import React from "react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  Legend as RechartsLegend,
+} from "recharts";
+import { SensorData } from "@/services/apiService";
+import {
+  ChartContainer,
+  ChartTooltipContent,
+  ChartLegendContent,
+} from "@/components/ui/chart";
+import { format } from "date-fns";
+import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-const data = [
-  { time: '00:00', temperature: 20, humidity: 60, light: 0, soil: 30 },
-  { time: '04:00', temperature: 18, humidity: 65, light: 0, soil: 32 },
-  { time: '08:00', temperature: 22, humidity: 55, light: 3000, soil: 28 },
-  { time: '12:00', temperature: 27, humidity: 50, light: 5000, soil: 25 },
-  { time: '16:00', temperature: 25, humidity: 55, light: 4000, soil: 27 },
-  { time: '20:00', temperature: 22, humidity: 60, light: 1000, soil: 29 },
-]
-
-export function SensorChart() {
-  return (
-    <ResponsiveContainer width="100%" height={300}>
-      <LineChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="time" />
-        <YAxis yAxisId="left" />
-        <YAxis yAxisId="right" orientation="right" />
-        <Tooltip />
-        <Legend />
-        <Line yAxisId="left" type="monotone" dataKey="temperature" stroke="#8884d8" activeDot={{ r: 8 }} />
-        <Line yAxisId="left" type="monotone" dataKey="humidity" stroke="#82ca9d" />
-        <Line yAxisId="right" type="monotone" dataKey="light" stroke="#ffc658" />
-        <Line yAxisId="left" type="monotone" dataKey="soil" stroke="#ff7300" />
-      </LineChart>
-    </ResponsiveContainer>
-  )
+interface SensorChartProps {
+  data: SensorData[];
+  metric: keyof Omit<SensorData, "id" | "timestamp" | "category">;
 }
 
+const categories = ["trees", "vegetables", "ornamentals"] as const;
+
+// Function to round date to the nearest second
+const roundToNearestSecond = (date: Date): string => {
+  const rounded = new Date(Math.floor(date.getTime() / 1000) * 1000);
+  return format(rounded, "yyyy-MM-dd HH:mm:ss");
+};
+
+const metricLabels: Record<keyof Omit<SensorData, "id" | "timestamp" | "category">, string> = {
+  temperature: "Temperatura",
+  humidity: "Umidade",
+  lightIntensity: "Intensidade de Luz",
+  soilMoisture: "Umidade do Solo",
+};
+
+const SensorChart: React.FC<SensorChartProps> = ({ data, metric }) => {
+  // Define the config for ChartContainer
+  const config = {
+    trees: {
+      label: "Árvores",
+      color: "hsl(220, 90%, 56%)",
+    },
+    vegetables: {
+      label: "Vegetais",
+      color: "hsl(120, 70%, 50%)",
+    },
+    ornamentals: {
+      label: "Ornamentais",
+      color: "hsl(340, 80%, 60%)",
+    },
+  };
+
+  // Group data by timestamp
+  const groupedDataMap: {
+    [key: string]: { timestamp: string } & { [key in typeof categories[number]]: number | null };
+  } = {};
+
+  data.forEach((item) => {
+    const roundedTimestamp = roundToNearestSecond(new Date(item.timestamp));
+    if (!groupedDataMap[roundedTimestamp]) {
+      groupedDataMap[roundedTimestamp] = { timestamp: roundedTimestamp, trees: null, vegetables: null, ornamentals: null };
+    }
+    groupedDataMap[roundedTimestamp][item.category] = item[metric];
+  });
+
+  // Convert grouped data to an array and sort by timestamp
+  const chartData = Object.values(groupedDataMap).sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  );
+
+  return (
+    <>
+      <CardHeader>
+        <CardTitle>
+          {metricLabels[metric]} ao longo do tempo
+        </CardTitle>
+      </CardHeader>
+      <CardContent> 
+        <ChartContainer config={config} className="w-full max-h-80">
+          <LineChart data={chartData} height={200} margin={{ left: 12, right: 12 }}>
+          <CartesianGrid vertical={false} />
+          <XAxis
+            dataKey="timestamp"
+            tickLine={false}
+            axisLine={false}
+            tickMargin={8}
+            tickFormatter={(str) => {
+              const date = new Date(str);
+              return format(date, "HH:mm:ss");
+            }}
+          />
+          <RechartsTooltip content={<ChartTooltipContent />} cursor={false} />
+          <RechartsLegend content={<ChartLegendContent />} />
+          {categories.map((category) => (
+            <Line
+              key={category}
+              type="monotone"
+              dataKey={category}
+              stroke={`var(--color-${category})`}
+              strokeWidth={2}
+              dot={false}
+              name={config[category].label}
+              connectNulls
+            />
+          ))}
+          </LineChart>
+        </ChartContainer>
+      </CardContent>
+    </>
+  );
+};
+
+export default SensorChart;
